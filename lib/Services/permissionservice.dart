@@ -21,7 +21,7 @@ class PermissionService {
 
   static Widget showAlert(BuildContext context, String permissionType) {
     return AlertDialog(
-      title: const Text('Permission Required'),
+      title: const Text('Permission Re quired'),
       content: const Text("Permission must be given to access this feature."),
       actions: <Widget>[
         TextButton(

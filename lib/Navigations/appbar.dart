@@ -9,6 +9,7 @@ import 'package:badges/badges.dart' as badges;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:press2safety/Auth/Login1.dart';
+import '../Services/notificationScreen.dart';
 import '../Utils/Image_strings.dart';
 import '../Utils/colors.dart';
 import '../Test/login.dart';
@@ -103,25 +104,40 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Flexible(
-                  //badgeContent:
-                  //  const Text('3', style: TextStyle(color: Colors
-                  //  .white)),
-                  //badgeStyle: const badges.BadgeStyle(
-                  //  badgeColor: AppColors.badgePrimary,
-                  //  padding: EdgeInsets.all(6),
-                  //  shape: badges.BadgeShape.circle,
-                  //  ),
-                  child: IconButton(
-                    onPressed: () {
-                      if (kDebugMode) {
-                        print("Notification btn");
-                      }
-                    },
-                    icon: const Icon(Icons.notifications),
-                    color: AppColors.iconPrimary,
-                  ),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(FirebaseAuth.instance.currentUser?.email)
+                      .collection('sms')
+                      .where('read', isEqualTo: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    int unreadCount = snapshot.data?.docs.length ?? 0;
+
+                    return badges.Badge(
+                      showBadge: unreadCount > 0,
+                      badgeContent: Text(
+                        unreadCount.toString(),
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                      ),
+                      badgeStyle: const badges.BadgeStyle(
+                        badgeColor: Colors.red,
+                        padding: EdgeInsets.all(5),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => NotificationScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.notifications),
+                        color: AppColors.iconPrimary,
+                      ),
+                    );
+                  },
                 ),
+
                 const SizedBox(width: 15),
                 Flexible(
                   child: IconButton(

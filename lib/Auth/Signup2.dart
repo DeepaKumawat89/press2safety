@@ -32,47 +32,6 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  // Function to handle signup logic
-  // Future<void> _signup() async {
-  //   if (_formKey.currentState != null && _formKey.currentState!.validate()) {
-  //     setState(() {
-  //       _isLoading = true;
-  //     });
-  //
-  //     try {
-  //       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-  //         email: _emailController.text.trim(),
-  //         password: _passwordController.text.trim(),
-  //       );
-  //
-  //       if (userCredential.user != null) {
-  //         await _firestore.collection('users').doc(_emailController.text.trim()).set({
-  //           'username': _usernameController.text.trim(),
-  //           'phone': _phoneController.text.trim(),
-  //           'email': _emailController.text.trim(),
-  //           'createdAt': Timestamp.now(),
-  //         });
-  //
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           const SnackBar(content: Text('Signup successful!')),
-  //         );
-  //
-  //         Navigator.pushReplacement(
-  //           context,
-  //           MaterialPageRoute(builder: (context) => const LoginScreen()),
-  //         );
-  //       }
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Signup failed: $e')),
-  //       );
-  //     } finally {
-  //       setState(() {
-  //         _isLoading = false;
-  //       });
-  //     }
-  //   }
-  // }
   Future<void> _signup() async {
     if (_formKey.currentState != null && _formKey.currentState!.validate()) {
       setState(() {

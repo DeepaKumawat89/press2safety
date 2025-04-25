@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mic_stream/mic_stream.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Services/CameraService.dart';
-import '../Services/Storage_service.dart';
 import '../Services/permissionservice.dart';
 import '../Utils/HelperFunction.dart';
 import '../Utils/colors.dart';
@@ -39,7 +41,7 @@ class _RecordScreenState extends State<RecordScreen> {
   Future<void> _initialize() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _uid = user.email;  // Use the email as the UID
+      _uid = user.email;
     } else {
       log("User is not logged in");
       return;
@@ -47,13 +49,11 @@ class _RecordScreenState extends State<RecordScreen> {
 
     _date = AppHelperFunctions.extractTodayDate();
 
-    // Request camera permission and initialize camera service
     PermissionService.requestCameraPermission();
     _cameraService = CameraService();
     await _cameraService.initializeCameras();
     setState(() {});
   }
-
 
   Future<void> startListening() async {
     if (_uid == null) {
@@ -84,7 +84,7 @@ class _RecordScreenState extends State<RecordScreen> {
   Future<void> stopListening() async {
     log("stopping");
     streamSubscription?.cancel();
-    await _uploadAudioToCloudinary();
+    // await _uploadAudioToFirestore();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Recording saved!'),
@@ -100,35 +100,31 @@ class _RecordScreenState extends State<RecordScreen> {
     );
   }
 
-
   void _startCameraSwitchTimer() {
     Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (isListening) {
-        final imagePath = await _cameraService.captureImage();
-        if (imagePath != null) {
-          await StorageService.uploadImage(imagePath,
-              'recordings/images/$_uid/$_date/${DateTime.now()}.jpg');
-        }
-        await _cameraService.toggleCamera();
-      } else {
+      if (!isListening) {
         timer.cancel();
+        return;
       }
+
+      final imagePath = await _cameraService.captureImage();
+      if (imagePath != null) {
+        final bytes = await File(imagePath).readAsBytes();
+        final base64Image = base64Encode(bytes);
+        final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_uid)
+            .collection('images')
+            .doc(_date)
+            .collection('records')
+            .doc(timestamp)
+            .set({'image': base64Image});
+      }
+
+      await _cameraService.toggleCamera();
     });
-  }
-
-  Future<void> _uploadAudioToCloudinary() async {
-    if (_uid == null) {
-      log("UID is null");
-      return;
-    }
-
-    final String userEmail = _uid!;  // Assuming _uid holds the user's email
-    Uint8List audioBytes = Uint8List.fromList(audioData);
-
-    await StorageService.uploadAudio(audioBytes, userEmail);
-
-    // Clear the audio data after uploading
-    audioData.clear();
   }
 
 
@@ -187,15 +183,14 @@ class _RecordScreenState extends State<RecordScreen> {
                 subtitle: const Text('Tap to see history'),
                 onTap: () {
                   isListening = false;
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => ViewRecordingsHistory(
-                  //       userID: _uid,
-                  //     ),
-                  //   ),
-                  // );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ViewRecordingsHistory(userID: _uid!),
+                    ),
+                  );
                 },
+
                 trailing: const Icon(
                   Icons.arrow_forward_ios,
                   color: Color(0xFF263238),
